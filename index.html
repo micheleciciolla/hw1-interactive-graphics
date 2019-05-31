@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<h2 style="color:black">Homework 1 - Interactive Graphics</h>
+<h2 style="color:black">Michele Ciciolla, 1869990</h>
+
+<h2 style="color:black; position: absolute; left: 200px; top: 700px;">Perspective view</h2>
+<h2 style="color:black;position: absolute; left: 700px; top: 700px;">Ortographic view</h2>
+
+<html>
+    <html>
+        <script id="vertex-shader" type="x-shader/x-vertex">
+
+             attribute  vec4 vPosition;
+             attribute  vec3 vNormal;
+             
+             uniform mat4 modelView;
+             uniform mat4 projection;
+             uniform mat4 translate;
+             uniform mat4 scale;
+             
+             varying vec3 fragN, fragL, fragE;
+             
+             uniform vec4 lightPosition;
+             uniform vec4 vAmbientProduct;
+             uniform vec4 vDiffuseProduct;
+             uniform vec4 vSpecularProduct;
+             uniform float vShininess;
+             
+             varying vec4 fColor;
+             
+             uniform bool flag;
+             
+             attribute  vec2 vTexCoord;  //texture coordinate from application
+             varying vec2 fTexCoord;     //output tex coordinate to be interpolated
+             
+             void main()
+             {	
+                     // Fix light position
+             
+                     vec3 pos = -(modelView * translate * scale * vPosition).xyz;      
+             
+                     vec3 light = lightPosition.xyz;
+             
+                     vec3 L = normalize( light - pos );
+                     vec3 E = normalize( -pos );
+                     vec3 H = normalize( L + E );
+                     
+                     vec4 NN = vec4(vNormal,0);
+             
+                     // Change vertex normals into coordinates (eye)
+                        
+                     vec3 N = normalize((modelView * translate * scale * vPosition * NN).xyz);  
+             
+                     // Point 5: Compute the illumination equation
+                     //Point 6: Switch between Phong e Gouraud
+             
+                     if (flag) {           //GOURAND
+               
+                         vec4 ambient = vAmbientProduct;
+             
+                         float Kd = max(dot(L, N), 0.0);
+                         vec4 diffuse = Kd * vDiffuseProduct;
+             
+                         float Ks = pow(max(dot(N, H), 0.0), vShininess);
+                         vec4 specular = Ks * vSpecularProduct;
+             
+                         if (dot(L, N) < 0.0) {
+                           specular = vec4(0.0, 0.0, 0.0, 1.0);
+                         }
+             
+                         fColor = ambient + diffuse + specular;
+                         fColor.a = 1.0;
+                         
+             
+                         } else {       //PHONG
+             
+                             fragL = L;
+                             fragE = E;
+                             fragN = N;
+                             
+             
+                         }
+                 fTexCoord = vTexCoord;  
+                 gl_Position = projection * modelView * translate * scale * vPosition;
+                 }
+             
+             </script>
+
+        <script id="fragment-shader" type="x-shader/x-fragment">
+
+
+             precision mediump float;
+             
+             varying vec4 fColor;
+             
+             //punto 6
+             uniform bool flag;
+             uniform vec4 fSpecularProduct;
+             uniform vec4 fAmbientProduct;
+             uniform vec4 fDiffuseProduct;
+             uniform float fShininess;
+             varying vec3 fragN, fragL, fragE;
+             
+             //punto 7
+             varying  vec2 fTexCoord;    //texture coordinate from rasterizer
+             uniform sampler2D texture;  //texture object from application
+             
+             void main(){
+                 if (flag) { //gourand
+                     gl_FragColor = fColor * texture2D( texture, fTexCoord );} 
+                     else { //phong
+                         vec4 fragColor;
+                         vec3 H = normalize(fragL + fragE);
+                         vec4 ambient = fAmbientProduct;
+                         float Kd = max(dot(fragL, fragN), 0.0);
+                         vec4 diffuse = Kd * fDiffuseProduct;
+                         float Ks = pow(max(dot(fragN, H), 0.0), fShininess);
+                         vec4 specular = Ks * fSpecularProduct;
+                         if (dot(fragL, fragN) < 0.0) specular = vec4(0.0, 0.0, 0.0, 1.0);
+                         fragColor = ambient + diffuse + specular;
+                         fragColor.a = 1.0;
+
+                         //gl_FragColor = fragColor 
+                         //point7
+             
+                         gl_FragColor = fragColor * texture2D( texture, fTexCoord );
+                     }
+             }
+             </script>
+
+        <script type="text/javascript" src="webgl-utils.js"></script>
+        <script type="text/javascript" src="initShaders.js"></script>
+        <script type="text/javascript" src="MV.js"></script>
+        <script type="text/javascript" src="homework1.js"></script>
+
+        <body>
+
+            <h3 style="position: absolute;; left:710px; top:00px;color:white; background-color:rgb(24, 20, 20);">viewing volume
+            </h3>
+
+            <h3 style="position: absolute;; left:540px; top:00px;color:white; background-color:rgb(24, 20, 20);">light model
+            </h3>
+
+            <div>
+                <h3 style="position:absolute;; left: 530px; top: 40px; color:black;background-color:rgb(209, 9, 9);">
+                    Material : Ruby </h3>
+                <h3 style="position: absolute;; left:530px; top:150px; color:black;background-color:rgb(158, 150, 30);"
+                    id="info"> Gourand model</h3>
+                <button style="position:absolute;; left:530px; top:130px; background-color:rgb(158, 150, 30);"
+                    id="switching">
+                    <center>Change Light Model</center>
+                </button>
+            </div>
+
+
+
+            <!-- [radius, theta, phi] camera position -->
+
+            <h3 style="position: absolute;; left:930px; top:00px;color:white; background-color:rgb(24, 20, 20);">viewing position
+            </h3>
+
+            <div style="position: absolute;; left:930px; top:50px; background-color:rgb(128, 30, 23);">
+                <center>(-) radius (+)</center>
+                </br>
+                <input id="radius" type="range" min="0.05" max="8" step="0.1" value="7" />
+            </div>
+
+            <div style="position: absolute;; left:930px; top:120px; background-color:rgb(128, 30, 23);">
+                <center>(-90) theta (+90)</center> </br>
+                <input id="theta" type="range" min="-90" max="90" step="5" value="20" />
+            </div>
+
+            <div style="position: absolute;; left:930px; top:200px; background-color:rgb(128, 30, 23);">
+                <center>(-90) phi (+90)</center> </br>
+                <input id="phi" type="range" min="-90" max="90" step="5" value="70" />
+            </div> </br>
+
+
+            <div style="position: absolute;; left:710px; top:50px; background-color:darkolivegreen;">
+                <center>(-) FieldOfView (+)</center></br>
+                <input id="fov" type="range" min="5.0" max="120.0" step="5.0" value="15.0" />
+            </div></br>
+
+            <div style="position: absolute;; left:710px; top:200px; background-color:darkolivegreen;">
+                <center>(-) Near (+)</center></br>
+                <input id="NearSlider" type="range" min=".01" max="10.0" step="0.1" value="0.1" />
+            </div>
+
+            <div style="position: absolute;; left:710px; top:120px; background-color:darkolivegreen;">
+                <center>(-) Far (+)</center></br>
+                <input id="FarSlider" type="range" min="1.0" max="10.0" step="0.1" value="20.0" />
+            </div>
+
+            <!-- [dx,dy,dz] translation -->
+
+            <h3 style="position: absolute;; left:1150px; top:00px;color:white; background-color:rgb(24, 20, 20);">cube translation,
+                scaling
+            </h3>
+
+            <div style="position: absolute;; left:1150px; top:50px; background-color:darkslategray;">
+                <center>cube_X</center></br>
+                <input id="translationX" type="range" min="-4" max="4" step="0.5" value="0" />
+            </div>
+
+            <div style="position: absolute;; left:1150px; top:120px; background-color:darkslategray;">
+                <center>cube_Y</center></br>
+                <input id="translationY" type="range" min="-4" max="4" step="0.5" value="0" />
+            </div>
+
+            <div style="position: absolute;; left:1150px; top:200px; background-color:darkslategray;">
+                <center>cube_Z</center></br>
+                <input id="translationZ" type="range" min="-2" max="4" step="0.5" value="0" />
+            </div>
+
+            <!-- scaling -->
+
+            <div style="position: absolute;; left:1150px; top:230px; background-color:darkslategray;">
+                <center>cube_scale</center> </br>
+                <input id="scale" type="range" min=".5" max="4" step="0.5" value="1" />
+            </div>
+
+            <body style="background:rgb(185, 184, 184);">
+                <canvas id="gl-canvas" width="1024" height="1024">
+                    Oops ... your browser doesn't support the HTML5 canvas element
+                </canvas>
+            </body>
+
+            </div>
+        </body>
+
+    </html>
