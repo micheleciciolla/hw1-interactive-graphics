@@ -7,7 +7,7 @@ Material for homework1 of the Interactive Graphics course at Sapienza
 * Michele Ciciolla <a href="https://github.com/micheleciciolla"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/1024px-Octicons-mark-github.svg.png" width="20"></a>
 
 ## Documentation
-You can read our technical documentation about this project here PDF [DOCUMENTATION](report.pdf)
+You can read our technical documentation about this project here PDF [DOCUMENTATION](Homework1.pdf)
 
 ## License
 This project is under MIT license - [LICENSE](./LICENSE)
